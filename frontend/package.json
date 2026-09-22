@@ -1,0 +1,36 @@
+{
+  "name": "pulse",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@clerk/react": "^6.16.1",
+    "@clerk/themes": "^2.4.57",
+    "@clerk/ui": "^1.33.1",
+    "@vitejs/plugin-react": "latest",
+    "axios": "^1.20.0",
+    "date-fns": "^4.4.0",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-router-dom": "latest",
+    "recharts": "latest",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tailwindcss/vite": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "prettier": "^3.9.7",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  }
+}
