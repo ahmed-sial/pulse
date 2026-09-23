@@ -33,9 +33,51 @@ services:
       timeout: 5s
       retries: 5
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.7-alpine
+    container_name: clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE DB: logs
+      CLICKHOUSE USER: default
+      CLICKHOUSE PASSWORD:
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ulimit:
+      nofile: 262144
+
+  ch-ui:
+    image: gher.io/caioricciuti/ch-ui:latest
+    depends_on:
+      - clickhouse
+    environment:
+      VITE_CLICKHOUSE URL: http://host.docker.internal:8123
+      VITE_CLICKHOUSE_USER: default
+      VITE_CLICKHOUSE PASS: ""
+    ports:
+      - "5521:5521/tcp"
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: pulse-logs-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats_data:/data
+    command:
+      - ["nats-server", "-js", "-m", "8222"]
+
 volumes:
   pgdata:
   redisdata:
+  clickhouse_data:
+  nats_data:
 
 networks:
   pulse_network:
