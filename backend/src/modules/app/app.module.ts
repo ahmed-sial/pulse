@@ -9,6 +9,7 @@ import { ClerkClientProvider } from '../auth/clerk.provider.js';
 import { APP_GUARD } from '@nestjs/core';
 import { ClerkOrApiKeyAuthGuard } from '../../guards/clerk-or-api-key-auth.guard.js';
 import { ApiKeyAuthGuard } from '../../guards/api-key-auth.guard.js';
+import { AppLogsModule } from '../app-logs/app-logs.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ApiKeyAuthGuard } from '../../guards/api-key-auth.guard.js';
     LRUCacheModule,
     RedisCacheModule,
     ApiKeyModule,
+    AppLogsModule,
   ],
   controllers: [],
   providers: [

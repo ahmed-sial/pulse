@@ -3,7 +3,7 @@ import { AppModule } from './modules/app/app.module.js';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: true });
 
   app.setGlobalPrefix('api');
 
