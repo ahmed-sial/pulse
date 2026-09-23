@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "module": "nodenext",
     "target": "es2020",
     "moduleResolution": "nodenext",
     "esModuleInterop": true,
-    "declaration": true
+    "declaration": true,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src"]
 }

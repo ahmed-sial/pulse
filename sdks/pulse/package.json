@@ -1,5 +1,5 @@
 {
-  "name": "@pulse/react",
+  "name": "@pulse/backend",
   "version": "1.0.0",
   "description": "A light-weigth npm package for working with pulse. Set up your logging pipeline within one minute.",
   "type": "module",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ahmed-sial/pulse-react.git"
+    "url": "git+https://github.com/ahmed-sial/pulse-backend.git"
   },
   "keywords": [
     "logs",
@@ -32,7 +32,7 @@
   },
   "homepage": "",
   "devDependencies": {
-    "@types/node": "26.6.2",
+    "@types/node": "^26.6.2",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
   },
