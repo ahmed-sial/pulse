@@ -1,0 +1,42 @@
+{
+  "name": "@pulse/react",
+  "version": "1.0.0",
+  "description": "A light-weigth npm package for working with pulse. Set up your logging pipeline within one minute.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist/",
+    "prepare": "npm run clean && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahmed-sial/pulse-react.git"
+  },
+  "keywords": [
+    "logs",
+    "structured-logging",
+    "monitoring",
+    "observability",
+    "audit",
+    "security"
+  ],
+  "author": "Ahmed Hassan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ahmed-sial/pulse-react/issues"
+  },
+  "homepage": "",
+  "devDependencies": {
+    "@types/node": "26.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "react": "^19.3.0"
+  }
+}

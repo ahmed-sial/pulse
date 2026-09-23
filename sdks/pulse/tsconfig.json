@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "nodenext",
+    "target": "es2020",
+    "moduleResolution": "nodenext",
+    "esModuleInterop": true,
+    "declaration": true
+  },
+  "include": ["src"]
+}
