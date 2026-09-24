@@ -2,6 +2,9 @@ import { clickHouseClient } from './client.js';
 
 export const createLogsTable = async () => {
   await clickHouseClient.command({
+    query: `CREATE DATABASE IF NOT EXISTS logs`,
+  });
+  await clickHouseClient.command({
     query: `
         CREATE TABLE IF NOT EXISTS logs.events (
             keyId       String,
@@ -10,18 +13,18 @@ export const createLogsTable = async () => {
             message     String,
             appName     LowCardinality(String),
             environment LowCardinality(String),
-            importance  Nullable(String),
+            importance  Nullable(UInt8),
             subsystem   Nullable(String),
             service     Nullable(String),
             operation   Nullable(String),
             track       Nullable(String),
-            security    Nullable(String)
+            security    Nullable(String),
             metrics     Nullable(String),
             timestamp   DateTime DEFAULT now(),
             ingested_at DateTime DEFAULT now(),
         )
             ENGINE = MergeTree()
-            PARTITION BY toYYYMM(timestamp)
+            PARTITION BY toYYYYMM(timestamp)
             ORDER BY (timestamp, keyId)
             TTL timestamp + INTERVAL 30 DAY DELETE
             SETTINGS index_granularity = 8192;

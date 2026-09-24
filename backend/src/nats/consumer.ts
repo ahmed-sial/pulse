@@ -68,28 +68,25 @@ export async function startLogsConsumer() {
       );
       await jsm.consumers.delete(streamName, durable);
     }
-  } catch (err) {}
+  } catch (err) {
+    logger.error(`Failed to inspect consumer ${durable}`, err);
+  }
   const sub = await js.subscribe(subject, opts);
   logger.log('PLS Logs consumer started successfully');
 
   for await (const msg of sub) {
     try {
-      const data = js.decode(msg.data);
-      const { keyId, logs, serverReceivedAt } = data as any;
+      const data = jc.decode(msg.data);
+      const { keyId, userId, logs, serverReceivedAt } = data as any;
       const now = Date.now();
-      const meta = await redis.hgetall(
-        `pls:key_meta:${CACHE_KEY_VERSION}:${keyId}`,
-      );
-      const userId = meta.user_id;
       const transformed = logs.map((log: any) => {
         const now = Date.now();
         const latency = now - serverReceivedAt;
         redis.lpush('ingest:latency', latency);
         redis.ltrim('ingest:latency', 0, 59);
         const ts = log?.timestamps?.eventTime
-          ? new Date(log?.timestamps?.eventTime).getTime()
-          : Date.now();
-        const timestampSeconds = Math.floor(ts / 1000);
+          ? new Date(log?.timestamps?.eventTime)
+          : new Date();
         return {
           keyId,
           userId,
@@ -104,7 +101,7 @@ export async function startLogsConsumer() {
           track: log.track ? JSON.stringify(log.track) : null,
           security: log.security ? JSON.stringify(log.security) : null,
           metrics: log.metrics ? JSON.stringify(log.metrics) : null,
-          timestamp: timestampSeconds,
+          timestamp: ts.toISOString().slice(0, 19).replace('T', ' '),
         };
       });
       await clickHouseClient.insert({

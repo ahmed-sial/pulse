@@ -7,7 +7,6 @@ const requiredEnvVars = {
   CLICKHOUSE_URL: process.env.CLICKHOUSE_URL,
   CLICKHOUSE_USER: process.env.CLICKHOUSE_USER,
   CLICKHOUSE_PASSWORD: process.env.CLICKHOUSE_PASSWORD,
-  CLICKHOUSE_DB: process.env.CLICKHOUSE_DB,
 };
 
 const missingVars = Object.entries(requiredEnvVars)
@@ -29,5 +28,5 @@ export const clickHouseClient = createClient({
   url: process.env.CLICKHOUSE_URL || 'http://localhost:8123',
   username: process.env.CLICKHOUSE_USER || 'default',
   password: process.env.CLICKHOUSE_PASSWORD || '',
-  database: process.env.CLICKHOUSE_DB || 'logs',
+  database: 'default',
 });

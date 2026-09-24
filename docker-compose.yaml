@@ -47,17 +47,19 @@ services:
       CLICKHOUSE USER: default
       CLICKHOUSE PASSWORD:
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
-    ulimit:
-      nofile: 262144
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
 
   ch-ui:
-    image: gher.io/caioricciuti/ch-ui:latest
+    image: ggartyy/ch-ui:latest
     depends_on:
       - clickhouse
     environment:
       VITE_CLICKHOUSE URL: http://host.docker.internal:8123
       VITE_CLICKHOUSE_USER: default
-      VITE_CLICKHOUSE PASS: ""
+      VITE_CLICKHOUSE_PASS: ""
     ports:
       - "5521:5521/tcp"
 
@@ -70,8 +72,7 @@ services:
       - "8222:8222"
     volumes:
       - nats_data:/data
-    command:
-      - ["nats-server", "-js", "-m", "8222"]
+    command: "nats-server -js -m 8222"
 
 volumes:
   pgdata:

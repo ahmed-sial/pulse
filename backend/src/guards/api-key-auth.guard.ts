@@ -75,7 +75,7 @@ export class ApiKeyAuthGuard implements CanActivate {
           lruCacheValue.expiresAt > now &&
           lruCacheValue.digestedApiKey === digestedApiKey
         ) {
-          request.apiKey = { apiKeyId };
+          request.apiKeyId = apiKeyId;
           request.userId = lruCacheValue.userId;
           // await keyword is not used here,
           // because it is a guard not an API endpoint, so we should
@@ -104,7 +104,7 @@ export class ApiKeyAuthGuard implements CanActivate {
             expiresAt: Date.now() + API_KEY_LRU_TTL,
             digestedApiKey,
           });
-          request.apiKey = { apiKeyId };
+          request.apiKeyId = apiKeyId;
           request.userId = redisCacheValue.userId;
           void this.trackApiKeyLastUsedAt(apiKeyId);
           return true;
@@ -139,7 +139,7 @@ export class ApiKeyAuthGuard implements CanActivate {
           expiresAt: Date.now() + API_KEY_LRU_TTL,
           digestedApiKey,
         });
-        request.apiKey = { apiKeyId };
+        request.apiKeyId = apiKeyId;
         request.userId = apiKeyRecord.user_id;
         void this.trackApiKeyLastUsedAt(apiKeyId);
         return true;

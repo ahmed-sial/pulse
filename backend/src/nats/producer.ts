@@ -2,6 +2,7 @@ import { getNats } from './index.js';
 
 export async function publishLogBatch(
   keyId: string,
+  userId: string,
   logs: any[],
   serverReceivedAt: number,
 ) {
@@ -9,9 +10,10 @@ export async function publishLogBatch(
   const js = nc.jetstream();
 
   await js.publish(
-    'log.ingest',
+    'logs.ingest',
     jc.encode({
       keyId,
+      userId,
       serverReceivedAt,
       timestamp: Date.now(),
       logs,
