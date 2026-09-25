@@ -637,6 +637,14 @@ button {
   background: #b09cff18;
   color: #b09cff;
 }
+.level-audit {
+  background: #f0c85a18;
+  color: #f0c85a;
+}
+.level-metric {
+  background: #65d2df18;
+  color: #65d2df;
+}
 .text-link {
   display: flex;
   align-items: center;

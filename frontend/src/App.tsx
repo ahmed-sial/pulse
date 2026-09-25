@@ -15,7 +15,6 @@ import { ApiKeys } from "./pages/ApiKeys";
 import { Settings } from "./pages/Settings";
 import type { Theme } from "./types";
 import { Toaster } from "sonner";
-import { LogFunction } from "./api/test";
 
 function App() {
   const [theme, setTheme] = useState<Theme>("dark");
