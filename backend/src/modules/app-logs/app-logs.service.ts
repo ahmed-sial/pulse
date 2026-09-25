@@ -51,7 +51,7 @@ export class AppLogsService {
       })}\n\n`,
     );
 
-    addClient(res, { userId, appName, env, limit, search, type });
+    addClient(res, { userId, appName, env, search, type });
     req.on('close', () => {
       res.send();
     });
