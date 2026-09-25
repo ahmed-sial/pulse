@@ -1,9 +1,8 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
 import { AppLogsService } from './app-logs.service.js';
-import { logger } from '../../libs/test.js';
-import { Public } from '../../decorators/public.decorator.js';
 import { CurrentUserId } from '../../decorators/current-user-id.decorator.js';
 import { ApiKeyId } from '../../decorators/api-key-id.decorator.js';
+import type { Response } from 'express';
 
 @Controller('logs')
 export class AppLogsController {
@@ -18,19 +17,12 @@ export class AppLogsController {
     return this.logsService.sendLogs(apiId, userId, body);
   }
 
-  @Public()
-  @Get()
-  async send() {
-    try {
-      await logger.error({
-        message: 'Something went wrong',
-        importance: 'medium',
-        service: 'auth-service',
-      });
-
-      return { success: true };
-    } catch (err) {
-      console.error(err);
-    }
+  @Get('stream')
+  async startServerSentEvents(
+    @CurrentUserId() userId: string,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
+    return this.logsService.startServerSentEvents(req, res, userId);
   }
 }
