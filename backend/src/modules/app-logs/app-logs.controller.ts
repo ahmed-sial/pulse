@@ -8,6 +8,11 @@ import type { Response } from 'express';
 export class AppLogsController {
   constructor(private readonly logsService: AppLogsService) {}
 
+  @Get()
+  async getLogs(@CurrentUserId() userId: string, @Req() req: any) {
+    return this.logsService.getLogs(req, userId);
+  }
+
   @Post('send')
   async sendLogs(
     @CurrentUserId() userId: string,
