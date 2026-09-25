@@ -81,4 +81,58 @@ export class PLSTransport {
       this.isFlushing = false;
     }
   }
+
+  async get(filters?: Record<string, any>) {
+    const qs =
+      filters && Object.keys(filters).length > 0
+        ? `?${new URLSearchParams(filters).toString()}`
+        : "";
+
+    const res = await fetch(`${this.baseUrl}/logs${qs}`, {
+      headers: this.headers,
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `HTTP request failed (${res.status}): ${text.slice(0, 200)}`,
+      );
+    }
+    return res.json();
+  }
+
+  public stream(filters?: Record<string, any>) {
+    const qs =
+      filters && Object.keys(filters).length > 0
+        ? `?${new URLSearchParams(filters).toString()}`
+        : "";
+    const url = `${this.baseUrl}/logs/stream?${qs}`;
+    const aborController = new AbortController();
+    const readable = new ReadableStream<Uint8Array>({
+      start: async (controller) => {
+        const res = await fetch(url, {
+          headers: this.headers,
+          signal: aborController.signal,
+        });
+        if (!res.body) {
+          controller.error(new Error("Upstream stream unavailable"));
+          return;
+        }
+        const reader = res.body.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) controller.enqueue(value);
+          }
+          controller.close();
+        } catch (err) {
+          controller.error(err);
+        }
+      },
+      cancel() {
+        aborController.abort();
+      },
+    });
+    return { body: readable };
+  }
 }
