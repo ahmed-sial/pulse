@@ -28,7 +28,7 @@ function Main() {
         }}
       >
         <BrowserRouter>
-          <App theme={theme} setTheme={setTheme} />
+          <App />
         </BrowserRouter>
       </ClerkProvider>
     </React.StrictMode>
