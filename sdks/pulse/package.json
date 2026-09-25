@@ -31,8 +31,12 @@
     "url": "https://github.com/ahmed-sial/pulse-react/issues"
   },
   "homepage": "",
+  "dependencies": {
+    "react": "^19.3.0"
+  },
   "devDependencies": {
     "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2"
   }
