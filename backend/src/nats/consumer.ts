@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import dotenv from 'dotenv';
 import { clickHouseClient } from '../clickhouse/client.js';
+import { broadCastLogsToClient } from '../sse/sse-registry.js';
 dotenv.config();
 
 const logger = new Logger('NatsJetstreamConsumer', { timestamp: true });
@@ -108,6 +109,9 @@ export async function startLogsConsumer() {
         values: transformed,
         format: 'JSONEachRow',
       });
+
+      broadCastLogsToClient(transformed);
+
       msg.ack();
       if (now - lastBacklogUpdate > 1000) {
         lastBacklogUpdate = now;
