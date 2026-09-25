@@ -16,8 +16,7 @@ export function broadCastLogsToClient(logs: any[]) {
       if (filters.type && log.type !== filters.type) return false;
       if (filters.env && log.environment !== filters.env) return false;
       if (filters.appName && log.appName !== filters.appName) return false;
-      if (filters.search && !log.messages.includes(filters.search))
-        return false;
+      if (filters.search && !log.message.includes(filters.search)) return false;
       return true;
     });
     if (matched.length === 0) continue;
