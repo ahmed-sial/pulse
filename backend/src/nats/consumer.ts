@@ -3,7 +3,6 @@ import { getNats } from './index.js';
 import { Logger } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import dotenv from 'dotenv';
-import { CACHE_KEY_VERSION } from '../configs/index.js';
 import { clickHouseClient } from '../clickhouse/client.js';
 dotenv.config();
 
@@ -64,7 +63,7 @@ export async function startLogsConsumer() {
     const config: any = (existing as any)?.config;
     if (config && !config.deliver_subject) {
       logger.warn(
-        `Jetstream durable ${durable} is pull-based(missing deliver_subject). Recreating as push consumer`,
+        `Jetstream consumer ${streamName}:${durable} is pull-based consumer (missing deliver_subject). Recreating as push consumer`,
       );
       await jsm.consumers.delete(streamName, durable);
     }
@@ -84,8 +83,8 @@ export async function startLogsConsumer() {
         const latency = now - serverReceivedAt;
         redis.lpush('ingest:latency', latency);
         redis.ltrim('ingest:latency', 0, 59);
-        const ts = log?.timestamps?.eventTime
-          ? new Date(log?.timestamps?.eventTime)
+        const ts = log?.timestamps?.event_time
+          ? new Date(log?.timestamps?.event_time)
           : new Date();
         return {
           keyId,
@@ -121,6 +120,7 @@ export async function startLogsConsumer() {
         await redis.set('ingest:backlog', backlog);
       }
     } catch (err) {
+      msg.nak();
       logger.error('Consumer error: ', err);
     }
   }
