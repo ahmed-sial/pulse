@@ -36,7 +36,7 @@ export class PLSTransport {
   }
 
   private setupGracefulShutdown() {
-    const shutdownHandler = async (signal?: string) => {
+    const shutdownHandler = async () => {
       if (this.shuttingDown) return;
       this.shuttingDown = true;
       try {
@@ -65,15 +65,20 @@ export class PLSTransport {
       return;
     }
     try {
-      await fetch(`${this.baseUrl}/logs/send`, {
+      const res = await fetch(`${this.baseUrl}/logs/send`, {
         method: "POST",
         headers: this.headers,
         body: JSON.stringify({ logs: batch }),
         keepalive: true,
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
     } catch (err) {
-      console.error("PLSTransport flush failed: ", err);
+      console.error("PLSTransport flush failed, re-queuing: ", err);
+      this.buffer.unshift(...batch);
+      if (!this.timer)
+        this.timer = setTimeout(() => this.flush(), this.flushInterval);
+    } finally {
+      this.isFlushing = false;
     }
-    this.isFlushing = false;
   }
 }
