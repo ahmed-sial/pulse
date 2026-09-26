@@ -779,6 +779,80 @@ button {
   border-radius: 5px;
   margin: -4px auto 10px;
 }
+.query-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 14px 12px;
+}
+.query-chip {
+  font: 10px "JetBrains Mono";
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.query-chip b {
+  color: var(--accent);
+  font-weight: 600;
+  margin-right: 3px;
+}
+.query-warnings {
+  padding: 0 14px 12px;
+  display: grid;
+  gap: 4px;
+}
+.query-warnings span {
+  font-size: 10px;
+  color: #f4b86a;
+}
+.query-history {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0 0;
+}
+.query-history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--text);
+  font-size: 11px;
+}
+.query-history-item:hover {
+  border-color: var(--border);
+  background: var(--surface2);
+}
+.query-history-item code {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11px "JetBrains Mono";
+  color: var(--accent);
+}
+.query-history-item span {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.query-badge {
+  font: 9px "JetBrains Mono";
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.query-badge.cached {
+  color: #f4b86a;
+  border-color: #7a5a2b;
+}
 .log-meta {
   display: flex;
   justify-content: space-between;
@@ -805,6 +879,102 @@ button {
 }
 .table-scroll {
   overflow-x: auto;
+}
+/* Reusable vertical-resize box (see ResizableY.tsx): a full-width
+   draggable strip along the bottom edge, rather than a single corner
+   grip, so you can grab anywhere along the border like an OS window
+   splitter. */
+.resizable-y {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.resizable-y-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.resize-handle-y {
+  flex: 0 0 auto;
+  height: 10px;
+  cursor: ns-resize;
+  position: relative;
+  touch-action: none;
+}
+.resize-handle-y::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.resize-handle-y:hover::after,
+.resize-handle-y:active::after {
+  background: var(--accent);
+}
+/* Scoped to the live log explorer only: keeps the table itself scrollable
+   instead of the whole page, with the header staying put while you scroll. */
+.logs-scroll {
+  height: calc(100vh - 340px);
+  min-height: 200px;
+}
+.logs-scroll .resizable-y-content thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+/* Scoped to the query lab's results panel. */
+.query-results-scroll {
+  height: calc(100vh - 300px);
+  min-height: 160px;
+}
+.query-results-scroll .resizable-y-content thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+.scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+.scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+/* Fixed-height (not user-resizable), scrollable both ways, so a long
+   query doesn't grow the page. */
+.query-editor textarea {
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: pre;
+}
+/* Recent-queries history: resizable like the log table (see ResizableY.tsx). */
+.query-history-scroll {
+  height: 260px;
+  min-height: 120px;
+}
+.query-history-item {
+  min-width: max-content;
+}
+.query-history-item code {
+  flex: none;
+  white-space: nowrap;
 }
 .log-table,
 .service-table {
@@ -986,6 +1156,7 @@ button {
 .query-layout {
   display: grid;
   grid-template-columns: 1fr 1.3fr;
+  align-items: start;
   gap: 12px;
 }
 .query-editor {
@@ -1010,7 +1181,7 @@ button {
   height: 250px;
   background: #0c131b;
   border: 0;
-  resize: vertical;
+  resize: none;
   padding: 17px;
   color: var(--accent);
   font: 12px "JetBrains Mono";

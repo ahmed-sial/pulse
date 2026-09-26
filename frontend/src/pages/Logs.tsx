@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PageHead } from "../components/common/PageHead";
+import { ResizableY } from "../components/common/ResizableY";
 import { LogDrawer } from "../components/logs/LogDrawer";
 import { levelStyle, LOG_RANGES, LOG_TYPES } from "../constants/logLevels";
 import { api } from "../api/axios";
@@ -356,7 +357,11 @@ export function Logs() {
         </span>
       </div>
       <div className="panel table-panel">
-        <div className="table-scroll scrollbar">
+        <ResizableY
+          className="logs-scroll"
+          contentClassName="table-scroll scrollbar"
+          handleTitle="Drag to resize"
+        >
           <table className="log-table">
             <thead>
               <tr>
@@ -411,7 +416,7 @@ export function Logs() {
               )}
             </div>
           )}
-        </div>
+        </ResizableY>
         {canLoadMore && rows.length >= limit && (
           <div
             style={{
