@@ -79,7 +79,7 @@ export class AppLogsService {
 
     const raw = queryObj.query as string | undefined;
     if (raw) {
-      const parts = queryObj.split(/[&, \s]+/);
+      const parts = raw.split(/[&, \s]+/);
       for (const p of parts) {
         const [k, v] = p.split(':');
         if (!k || v == undefined) continue;
