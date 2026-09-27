@@ -10,6 +10,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ClerkOrApiKeyAuthGuard } from '../../guards/clerk-or-api-key-auth.guard.js';
 import { ApiKeyAuthGuard } from '../../guards/api-key-auth.guard.js';
 import { AppLogsModule } from '../app-logs/app-logs.module.js';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AppLogsModule } from '../app-logs/app-logs.module.js';
     RedisCacheModule,
     ApiKeyModule,
     AppLogsModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [],
   providers: [

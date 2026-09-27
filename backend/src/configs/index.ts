@@ -14,6 +14,8 @@ export const planRedisKey = (userId: string) =>
 export const usageRedisKey = (userId: string) =>
   `pls:usage:${CACHE_KEY_VERSION}:${userId}`;
 
+export const USAGE_DIRTY_KEY = `pls:usage:dirty:${CACHE_KEY_VERSION}`;
+
 export enum PlanTier {
   FREE = 'free',
   STARTER = 'starter',
