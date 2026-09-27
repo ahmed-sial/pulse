@@ -73,8 +73,8 @@ export class AppLogsService {
       appName?: string;
       search?: string;
       range?: string;
-      from?: Number;
-      to?: Number;
+      from?: number;
+      to?: number;
     } = {};
 
     const raw = queryObj.query as string | undefined;
@@ -140,16 +140,16 @@ export class AppLogsService {
           d: value * 86400,
         }[unit];
 
-        timestampFrom = nowSecs - seconds!; // TODO: seconds might be undefined
+        timestampFrom = nowSecs - seconds!;
         timestampTo = nowSecs;
       }
     }
     if (parsed.from) {
-      const f = Number(parsed.from);
+      const f = parsed.from;
       timestampFrom = f > 2e12 ? Math.floor(f / 1000) : f;
     }
     if (parsed.to) {
-      const f = Number(parsed.to);
+      const f = parsed.to;
       timestampTo = f > 2e12 ? Math.floor(f / 1000) : f;
     }
     if (!timestampFrom || !timestampTo) {

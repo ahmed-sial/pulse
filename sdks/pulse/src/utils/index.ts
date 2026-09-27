@@ -105,7 +105,7 @@ export class PLSTransport {
       filters && Object.keys(filters).length > 0
         ? `?${new URLSearchParams(filters).toString()}`
         : "";
-    const url = `${this.baseUrl}/logs/stream?${qs}`;
+    const url = `${this.baseUrl}/logs/stream${qs}`;
     const aborController = new AbortController();
     const readable = new ReadableStream<Uint8Array>({
       start: async (controller) => {
