@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  PayloadTooLargeException,
+} from '@nestjs/common';
 import { publishLogBatch } from '../../nats/producer.js';
 import { Response } from 'express';
 import { clickHouseClient } from '../../clickhouse/client.js';
@@ -12,11 +16,38 @@ const resultCache = new LRUCache<
   { rows: any[]; totalCount: number; ts: number }
 >({ max: 20_000 });
 
+const LOG_BATCH_LIMITS = {
+  free: { maxLogs: 100, maxBytes: 100_000 },
+  starter: { maxLogs: 500, maxBytes: 500_000 },
+  pro: { maxLogs: 2_000, maxBytes: 1_500_000 },
+  business: { maxLogs: 5_000, maxBytes: 2_000_000 },
+} as const;
+
+type LogBatchPlan = keyof typeof LOG_BATCH_LIMITS;
+
 @Injectable()
 export class AppLogsService {
-  async sendLogs(keyId: any, userId: string, body: any) {
+  async sendLogs(keyId: any, userId: string, body: any, userPlan: string) {
+    const logs = body.logs;
+    if (!Array.isArray(logs)) {
+      throw new BadRequestException(
+        'Unexpected logs type. Logs must be an array',
+      );
+    }
+    const limits = this.getLogBatchLimits(userPlan);
+    const logsSizeBytes = Buffer.byteLength(JSON.stringify(logs), 'utf8');
+    if (logs.length > limits.maxLogs) {
+      throw new BadRequestException('Too many logs in one batch');
+    }
+    if (logsSizeBytes > limits.maxBytes) {
+      throw new PayloadTooLargeException('Log batch exceeds maximum size');
+    }
     await publishLogBatch(keyId, userId, body.logs, Date.now());
     return { message: 'OK' };
+  }
+
+  private getLogBatchLimits(userPlan: string) {
+    return LOG_BATCH_LIMITS[userPlan as LogBatchPlan] ?? LOG_BATCH_LIMITS.free;
   }
 
   async startServerSentEvents(req: any, res: Response, userId: string) {
