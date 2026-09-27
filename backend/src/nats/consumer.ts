@@ -5,6 +5,12 @@ import { Redis } from 'ioredis';
 import dotenv from 'dotenv';
 import { clickHouseClient } from '../clickhouse/client.js';
 import { broadCastLogsToClient } from '../sse/sse-registry.js';
+import {
+  PLAN_REDIS_TTL,
+  USAGE_DIRTY_KEY,
+  usageRedisKey,
+} from '../configs/index.js';
+import { usageCache } from '../guards/usage.guard.js';
 dotenv.config();
 
 const logger = new Logger('NatsJetstreamConsumer', { timestamp: true });
@@ -109,6 +115,19 @@ export async function startLogsConsumer() {
         values: transformed,
         format: 'JSONEachRow',
       });
+
+      const usageKey = usageRedisKey(userId);
+      await redis.hincrby(usageKey, 'events_used', transformed.length);
+      await redis.expire(usageKey, PLAN_REDIS_TTL);
+      await redis.sadd(USAGE_DIRTY_KEY, userId);
+      const lruKey = `usage:${userId}`;
+      const cached = usageCache.get(lruKey);
+      if (cached) {
+        usageCache.set(lruKey, {
+          ...cached,
+          events_used: cached.events_used + transformed.length,
+        });
+      }
 
       broadCastLogsToClient(transformed);
 
