@@ -1,8 +1,17 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AppLogsService } from './app-logs.service.js';
 import { CurrentUserId } from '../../decorators/current-user-id.decorator.js';
 import { ApiKeyId } from '../../decorators/api-key-id.decorator.js';
 import type { Response } from 'express';
+import { UsageGuard } from '../../guards/usage.guard.js';
 
 @Controller('logs')
 export class AppLogsController {
@@ -14,12 +23,14 @@ export class AppLogsController {
   }
 
   @Post('send')
+  @UseGuards(UsageGuard)
   async sendLogs(
+    @Req() req: any,
     @CurrentUserId() userId: string,
     @ApiKeyId() apiId: string,
     @Body() body: any,
   ) {
-    return this.logsService.sendLogs(apiId, userId, body);
+    return this.logsService.sendLogs(apiId, userId, body, req.plan);
   }
 
   @Get('stream')
