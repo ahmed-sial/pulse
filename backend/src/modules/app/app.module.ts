@@ -11,6 +11,7 @@ import { ClerkOrApiKeyAuthGuard } from '../../guards/clerk-or-api-key-auth.guard
 import { ApiKeyAuthGuard } from '../../guards/api-key-auth.guard.js';
 import { AppLogsModule } from '../app-logs/app-logs.module.js';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BillingModule } from '../billing/billing.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ApiKeyModule,
     AppLogsModule,
     ScheduleModule.forRoot(),
+    BillingModule,
   ],
   controllers: [],
   providers: [
