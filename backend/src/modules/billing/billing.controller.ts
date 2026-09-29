@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { BillingService } from './billing.service.js';
 import { UsageGuard } from '../../guards/usage.guard.js';
 import { CurrentUserId } from '../../decorators/current-user-id.decorator.js';
@@ -29,5 +37,13 @@ export class BillingController {
   @Post('portal')
   async createBillingPortal(@CurrentUserId() id: string) {
     return this.billingService.createPortalSession(id);
+  }
+
+  @Post('webhook')
+  async handleStripeWebhook(
+    @Req() req: any,
+    @Headers('stripe-signature') signature?: string,
+  ) {
+    return this.billingService.handleStripeWebhook(req.rawBody, signature);
   }
 }
