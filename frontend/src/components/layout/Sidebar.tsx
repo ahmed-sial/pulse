@@ -1,4 +1,11 @@
-import { Activity, ChevronDown, Loader, MoreHorizontal, X } from "lucide-react";
+import { Activity, ChevronDown, Loader, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  billingApi,
+  formatEvents,
+  type CurrentBilling,
+} from "../../api/billing";
+import { useApi } from "../../hooks/useApi";
 import { manage, nav } from "../../constants/navigation";
 import { NavItem } from "./NavItem";
 import { UserButton, useUser } from "@clerk/react";
@@ -11,6 +18,29 @@ export function Sidebar({
   close: () => void;
 }) {
   const { isLoaded, isSignedIn, user } = useUser();
+  const { authRequest } = useApi();
+  const [billing, setBilling] = useState<CurrentBilling | null>(null);
+  useEffect(() => {
+    if (!isSignedIn) {
+      setBilling(null);
+      return;
+    }
+    let active = true;
+    authRequest((token) => billingApi.current(token))
+      .then((response) => {
+        if (active) setBilling(response.data);
+      })
+      .catch(() => {
+        if (active) setBilling(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [authRequest, isSignedIn]);
+  const used = Number(billing?.usage.eventsUsed ?? 0);
+  const limit = Number(billing?.usage.eventsLimit ?? 0);
+  const percent =
+    limit > 0 ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0;
   return (
     <aside className={`sidebar ${mobileNav ? "mobile-open" : ""}`}>
       <div className="brand">
@@ -47,12 +77,16 @@ export function Sidebar({
         <div className="usage">
           <div>
             <span>Log volume</span>
-            <b>68%</b>
+            <b>{billing ? `${Math.round(percent)}%` : "—"}</b>
           </div>
           <div className="usage-track">
-            <i />
+            <i style={{ width: `${percent}%` }} />
           </div>
-          <small>680k of 1M events</small>
+          <small>
+            {billing
+              ? `${formatEvents(billing.usage.eventsUsed)} of ${formatEvents(billing.usage.eventsLimit)} events`
+              : "Usage unavailable"}
+          </small>
         </div>
         {isLoaded === true ? (
           <div className="user-row">
