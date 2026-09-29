@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { Link } from "react-router-dom";
 import { PageHead } from "../components/common/PageHead";
 
 export function Settings() {
@@ -12,9 +13,7 @@ export function Settings() {
       />
       <div className="settings-tabs">
         <button className="active">Workspace</button>
-        <button>Billing & plan</button>
-        <button>Account</button>
-        <button>Danger zone</button>
+        <Link to="/billing">Billing & plan</Link>
       </div>
       <div className="settings-grid">
         <section className="panel settings-card">
@@ -43,26 +42,11 @@ export function Settings() {
           </button>
         </section>
         <section className="panel settings-card">
-          <h2>Usage & plan</h2>
-          <p>Your current event allowance and retention.</p>
-          <div className="plan-card">
-            <div>
-              <span>Current plan</span>
-              <b>Developer</b>
-            </div>
-            <span className="plan-badge">Active</span>
-          </div>
-          <div className="usage-large">
-            <div>
-              <span>Events this month</span>
-              <b>680k / 1M</b>
-            </div>
-            <div className="usage-track">
-              <i style={{ width: "68%" }} />
-            </div>
-            <small>Resets in 12 days</small>
-          </div>
-          <button className="btn secondary">Manage plan</button>
+          <h2>Billing & plan</h2>
+          <p>View your current plan, usage, invoices, and subscription.</p>
+          <Link className="btn secondary" to="/billing">
+            Open billing
+          </Link>
         </section>
       </div>
     </>

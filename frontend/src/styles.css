@@ -1841,3 +1841,164 @@ button {
 .key-table .icon-btn {
   padding: 6px;
 }
+
+.settings-tabs a {
+  padding: 10px 2px;
+  margin-bottom: -1px;
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration: none;
+}
+.settings-tabs a:hover {
+  color: var(--text);
+}
+.settings-card a.btn {
+  align-self: flex-start;
+  text-decoration: none;
+}
+.billing-error {
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  border-color: #8e454b;
+}
+.billing-status {
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  border-color: var(--accent);
+}
+.billing-status p {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+.billing-error p {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+.billing-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.billing-summary > div:first-child {
+  flex: 1;
+  min-width: 180px;
+}
+.billing-summary h2 {
+  margin: 7px 0;
+  font-size: 22px;
+}
+.billing-summary p,
+.billing-usage small,
+.billing-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+.billing-summary p {
+  margin: 0;
+}
+.billing-usage {
+  min-width: min(260px, 100%);
+  flex: 1;
+}
+.billing-usage > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+}
+.billing-usage strong {
+  font-family: "JetBrains Mono";
+}
+.billing-section {
+  margin-bottom: 24px;
+}
+.billing-section > h2 {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.billing-plans {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.billing-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  min-width: 0;
+}
+.billing-tier.selected {
+  border-color: var(--accent);
+}
+.billing-tier-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.billing-tier h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.billing-price {
+  font-size: 20px;
+  font-weight: 700;
+}
+.billing-price small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.billing-tier p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.billing-tier .btn {
+  margin-top: auto;
+  justify-content: center;
+}
+.billing-invoices {
+  overflow: hidden;
+}
+.billing-invoices .table-title {
+  align-items: center;
+}
+.billing-empty {
+  padding: 24px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.billing-links {
+  white-space: nowrap;
+}
+.billing-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 12px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.billing-links a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 1100px) {
+  .billing-plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .billing-plans {
+    grid-template-columns: 1fr;
+  }
+  .billing-summary {
+    padding: 18px;
+  }
+}

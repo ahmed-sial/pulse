@@ -1,6 +1,7 @@
 import {
   Activity,
   Bell,
+  CreditCard,
   Code2,
   KeyRound,
   LayoutDashboard,
@@ -19,5 +20,6 @@ export const manage = [
   { to: "/alerts", label: "Alerts", icon: Bell },
   { to: "/integrations", label: "Integrations", icon: Zap },
   { to: "/api-keys", label: "API keys", icon: KeyRound },
+  { to: "/billing", label: "Billing", icon: CreditCard },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];

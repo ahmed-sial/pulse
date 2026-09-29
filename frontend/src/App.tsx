@@ -13,6 +13,7 @@ import { Alerts } from "./pages/Alerts";
 import { Integrations } from "./pages/Integrations";
 import { ApiKeys } from "./pages/ApiKeys";
 import { Settings } from "./pages/Settings";
+import { Billing } from "./pages/Billing";
 import type { Theme } from "./types";
 import { Toaster } from "sonner";
 
@@ -71,6 +72,7 @@ function App() {
                 <Route path="/integrations" element={<Integrations />} />
                 <Route path="/api-keys" element={<ApiKeys />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/billing" element={<Billing />} />
               </Routes>
             </main>
           </div>
