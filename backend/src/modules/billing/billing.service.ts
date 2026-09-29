@@ -23,7 +23,6 @@ import {
   usageRedisKey,
 } from '../../configs/index.js';
 import { planCache, usageCache } from '../../guards/usage.guard.js';
-import { InitializeOnPreviewAllowlist } from '@nestjs/core';
 
 type PaidPlan = 'starter' | 'pro' | 'business';
 
@@ -39,7 +38,7 @@ export class BillingService {
     this.stripe = new Stripe(stripeSecretKey);
   }
 
-  private isPaidPlan(plan: string) {
+  private isPaidPlan(plan: string | undefined): plan is PaidPlan {
     return plan === 'starter' || plan === 'pro' || plan === 'business';
   }
 
@@ -66,7 +65,7 @@ export class BillingService {
       const user = await clerk.users.getUser(userId);
       const pId = user.primaryEmailAddressId;
       const pEmail = user.emailAddresses.find((e) => e.id === pId);
-      return pEmail ?? user.emailAddresses[0].emailAddress ?? undefined;
+      return pEmail?.emailAddress ?? user.emailAddresses[0]?.emailAddress;
     } catch {
       return undefined;
     }
@@ -81,7 +80,7 @@ export class BillingService {
   }
 
   private async ensureStripeCustomer(userId: string) {
-    const email = (await this.getClerkUserEmail(userId)) as string;
+    const email = await this.getClerkUserEmail(userId);
     if (!email)
       throw new NotFoundException(
         "Can't ensure stripe customer. User email is missing",
@@ -91,9 +90,13 @@ export class BillingService {
       .where('user_id', '=', userId)
       .select(['name', 'stripe_customer_id'])
       .executeTakeFirst();
-    const stripeCustomer = await this.findStripeCustomerByEmail(email);
     const currentPlan = normalizePlanTier(record?.name);
+    if (record?.stripe_customer_id) {
+      return { customerId: record.stripe_customer_id, currentPlan };
+    }
+    const stripeCustomer = await this.findStripeCustomerByEmail(email);
     if (stripeCustomer) {
+      await this.storeCustomerId(userId, stripeCustomer.id);
       return {
         customerId: stripeCustomer.id,
         currentPlan,
@@ -105,24 +108,110 @@ export class BillingService {
         userId,
       },
     });
+    await this.storeCustomerId(userId, customer.id);
     return { customerId: customer.id, currentPlan };
   }
 
-  async getCurrentPlan(req: any) {
-    const plan = req.plan;
-    return { plan };
+  private async storeCustomerId(userId: string, customerId: string) {
+    const now = new Date();
+    await this.db
+      .insertInto('plan')
+      .values({
+        user_id: userId,
+        name: PlanTier.FREE,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: null,
+        stripe_price_id: null,
+        created_at: now,
+        updated_at: now,
+      })
+      .onConflict((oc) =>
+        oc.column('user_id').doUpdateSet({
+          stripe_customer_id: customerId,
+          updated_at: now,
+        }),
+      )
+      .execute();
+  }
+
+  async getPlans() {
+    const tiers: PaidPlan[] = ['starter', 'pro', 'business'];
+    const paid = await Promise.all(
+      tiers.map(async (name) => {
+        const price = await this.stripe.prices.retrieve(
+          this.getStripePriceId(name),
+        );
+        return {
+          name,
+          eventsLimit: PLAN_DEFAULTS[name].events_limit,
+          unitAmount: price.unit_amount,
+          currency: price.currency,
+          interval: price.recurring?.interval ?? null,
+          intervalCount: price.recurring?.interval_count ?? null,
+        };
+      }),
+    );
+    return {
+      plans: [
+        {
+          name: PlanTier.FREE,
+          eventsLimit: PLAN_DEFAULTS.free.events_limit,
+          unitAmount: 0,
+          currency: null,
+          interval: null,
+          intervalCount: null,
+        },
+        ...paid,
+      ],
+    };
+  }
+
+  async getCurrentPlan(userId: string) {
+    const [planRecord, usageRecord, cachedUsage] = await Promise.all([
+      this.db
+        .selectFrom('plan')
+        .select('name')
+        .where('user_id', '=', userId)
+        .executeTakeFirst(),
+      this.db
+        .selectFrom('usage')
+        .select(['events_usage', 'events_limit'])
+        .where('user_id', '=', userId)
+        .executeTakeFirst(),
+      this.redis.hgetall(usageRedisKey(userId)),
+    ]);
+    const plan = normalizePlanTier(planRecord?.name);
+    const eventsUsed =
+      cachedUsage.events_used ?? usageRecord?.events_usage ?? 0;
+    const eventsLimit =
+      cachedUsage.events_limit ??
+      usageRecord?.events_limit ??
+      PLAN_DEFAULTS[plan].events_limit;
+    return {
+      plan,
+      usage: {
+        eventsUsed: String(eventsUsed),
+        eventsLimit: String(eventsLimit),
+      },
+    };
   }
 
   async createBillingSession(userId: string, selectedPlan: string) {
-    const plan = selectedPlan.toLowerCase();
+    const plan =
+      typeof selectedPlan === 'string' ? selectedPlan.toLowerCase() : undefined;
     if (!this.isPaidPlan(plan)) {
       throw new BadRequestException(
         'Choose starter, pro, or business to create a billing session',
       );
     }
     const priceId = this.getStripePriceId(plan);
-    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:3001');
-    const { customerId } = await this.ensureStripeCustomer(userId);
+    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:5173');
+    const { customerId, currentPlan } = await this.ensureStripeCustomer(userId);
+    if (currentPlan !== PlanTier.FREE) {
+      throw new BadRequestException(
+        'Manage plan changes in the billing portal',
+      );
+    }
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
@@ -138,8 +227,8 @@ export class BillingService {
           plan,
         },
       },
-      success_url: `${appUrl}/settings?checkout=success&plan=${plan}`,
-      cancel_url: `${appUrl}/settings?checkout=cancelled`,
+      success_url: `${appUrl}/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/billing?checkout=cancelled`,
     });
     if (!session.url) {
       throw new InternalServerErrorException(
@@ -159,16 +248,137 @@ export class BillingService {
       );
     }
 
-    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:3001');
+    const appUrl = this.config.get<string>('APP_URL', 'http://localhost:5173');
 
     const session = await this.stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${appUrl}/settings`,
+      return_url: `${appUrl}/billing`,
     });
 
     return {
       url: session.url,
     };
+  }
+
+  async confirmCheckout(userId: string, sessionId?: string) {
+    const record = await this.db
+      .selectFrom('plan')
+      .select([
+        'name',
+        'stripe_customer_id',
+        'stripe_subscription_id',
+        'stripe_price_id',
+      ])
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+    const customerId = record?.stripe_customer_id;
+    if (!customerId) return { status: 'pending' as const };
+
+    let subscription: Stripe.Subscription | undefined;
+    if (sessionId !== undefined) {
+      if (
+        typeof sessionId !== 'string' ||
+        !/^cs_(test_|live_)[a-zA-Z0-9]+$/.test(sessionId)
+      ) {
+        throw new BadRequestException('Invalid checkout session ID');
+      }
+      const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+      const sessionCustomerId =
+        typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id;
+      if (
+        session.client_reference_id !== userId ||
+        sessionCustomerId !== customerId
+      ) {
+        throw new BadRequestException(
+          'Checkout session does not belong to this account',
+        );
+      }
+      if (
+        session.mode !== 'subscription' ||
+        session.status !== 'complete' ||
+        (session.payment_status !== 'paid' &&
+          session.payment_status !== 'no_payment_required')
+      ) {
+        return { status: 'pending' as const };
+      }
+      const subscriptionId =
+        typeof session.subscription === 'string'
+          ? session.subscription
+          : session.subscription?.id;
+      if (!subscriptionId) return { status: 'pending' as const };
+      subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+    } else {
+      // Also supports a checkout created before the success URL included a session ID.
+      const subscriptions = await this.stripe.subscriptions.list({
+        customer: customerId,
+        status: 'all',
+        limit: 20,
+      });
+      subscription = subscriptions.data
+        .filter(
+          (item) => item.status === 'active' || item.status === 'trialing',
+        )
+        .sort((a, b) => b.created - a.created)
+        .find(
+          (item) =>
+            this.getPlanFromPriceId(item.items.data[0]?.price.id) !==
+            PlanTier.FREE,
+        );
+    }
+
+    if (
+      !subscription ||
+      (subscription.status !== 'active' && subscription.status !== 'trialing')
+    ) {
+      return { status: 'pending' as const };
+    }
+    const subscriptionCustomerId =
+      typeof subscription.customer === 'string'
+        ? subscription.customer
+        : subscription.customer.id;
+    if (subscriptionCustomerId !== customerId) {
+      throw new BadRequestException(
+        'Subscription does not belong to this account',
+      );
+    }
+    const priceId = subscription.items.data[0]?.price.id;
+    const plan = this.getPlanFromPriceId(priceId);
+    if (plan === PlanTier.FREE) return { status: 'pending' as const };
+
+    // Do not let a revisit to an older Checkout URL replace a newer subscription.
+    if (
+      record.stripe_subscription_id &&
+      record.stripe_subscription_id !== subscription.id &&
+      normalizePlanTier(record.name) !== PlanTier.FREE
+    ) {
+      return {
+        status: 'confirmed' as const,
+        plan: normalizePlanTier(record.name),
+      };
+    }
+    if (
+      record.stripe_subscription_id !== subscription.id ||
+      normalizePlanTier(record.name) !== plan ||
+      record.stripe_price_id !== priceId
+    ) {
+      await this.activatePaidPlan({
+        userId,
+        plan,
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscription.id,
+        stripePriceId: priceId,
+      });
+    }
+    if (subscription.latest_invoice) {
+      const invoice =
+        typeof subscription.latest_invoice === 'string'
+          ? await this.stripe.invoices.retrieve(subscription.latest_invoice)
+          : subscription.latest_invoice;
+      await this.saveInvoice(invoice);
+    }
+    return { status: 'confirmed' as const, plan };
   }
 
   async getInvoices(userId: string) {
@@ -179,7 +389,13 @@ export class BillingService {
       .orderBy('created_at', (o) => o.desc())
       .execute();
 
-    return { invoices };
+    return {
+      invoices: invoices.map((invoice) => ({
+        ...invoice,
+        amount_due: invoice.amount_due?.toString() ?? null,
+        amount_paid: invoice.amount_paid?.toString() ?? null,
+      })),
+    };
   }
 
   async handleStripeWebhook(rawBody: Buffer, signature: string | undefined) {
@@ -206,9 +422,15 @@ export class BillingService {
         await this.activatePlanFromCheckoutSession(
           event.data.object as Stripe.Checkout.Session,
         );
+        break;
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
         await this.activatePlanFromSubscription(
+          event.data.object as Stripe.Subscription,
+        );
+        break;
+      case 'customer.subscription.deleted':
+        await this.deactivateSubscription(
           event.data.object as Stripe.Subscription,
         );
         break;
@@ -272,18 +494,18 @@ export class BillingService {
       .values({
         user_id: userId,
         name: plan,
-        stripe_customer_id: stripeCustomerId,
-        stripe_subscription_id: stripeSubscriptionId,
-        stripe_price_id: stripePriceId,
+        stripe_customer_id: stripeCustomerId ?? null,
+        stripe_subscription_id: stripeSubscriptionId ?? null,
+        stripe_price_id: stripePriceId ?? null,
         created_at: updatedAt,
         updated_at: updatedAt,
       })
       .onConflict((o) =>
         o.column('user_id').doUpdateSet({
           name: plan,
-          stripe_customer_id: stripeCustomerId,
-          stripe_subscription_id: stripeSubscriptionId,
-          stripe_price_id: stripePriceId,
+          stripe_customer_id: stripeCustomerId ?? null,
+          stripe_subscription_id: stripeSubscriptionId ?? null,
+          stripe_price_id: stripePriceId ?? null,
           updated_at: updatedAt,
         }),
       )
@@ -304,7 +526,6 @@ export class BillingService {
     stripePriceId?: string;
   }) {
     const now = new Date();
-    const planDefaults = PLAN_DEFAULTS[plan] ?? PLAN_DEFAULTS[PlanTier.FREE];
     await this.updatePlanSources({
       userId,
       plan,
@@ -313,11 +534,49 @@ export class BillingService {
       stripePriceId,
       updatedAt: now,
     });
+    await this.updateUsageSources({
+      userId,
+      eventsLimit: BigInt(PLAN_DEFAULTS[plan].events_limit),
+      updatedAt: now,
+    });
+  }
+
+  private async deactivateSubscription(subscription: Stripe.Subscription) {
+    const customerId =
+      typeof subscription.customer === 'string'
+        ? subscription.customer
+        : subscription.customer?.id;
+    const record = await this.db
+      .selectFrom('plan')
+      .select(['user_id', 'stripe_customer_id'])
+      .where('stripe_subscription_id', '=', subscription.id)
+      .executeTakeFirst();
+    const userId = record?.user_id ?? subscription.metadata?.userId;
+    if (!userId) return;
+    // A delayed deletion event must not downgrade a newer subscription.
+    const current = await this.db
+      .selectFrom('plan')
+      .select('stripe_subscription_id')
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+    if (current?.stripe_subscription_id !== subscription.id) return;
+    await this.updatePlanSources({
+      userId,
+      plan: PlanTier.FREE,
+      stripeCustomerId: customerId ?? record?.stripe_customer_id ?? undefined,
+      updatedAt: new Date(),
+    });
+    await this.updateUsageSources({
+      userId,
+      eventsLimit: BigInt(PLAN_DEFAULTS.free.events_limit),
+      updatedAt: new Date(),
+    });
   }
 
   private async activatePlanFromCheckoutSession(
     session: Stripe.Checkout.Session,
   ) {
+    if (session.payment_status === 'unpaid') return;
     const userId = session.client_reference_id || session.metadata?.userId;
     const priceId = session.line_items?.data?.[0]?.price?.id;
     const plan = this.resolvePaidPlan(session.metadata?.plan, priceId);
@@ -362,7 +621,11 @@ export class BillingService {
           .where('user_id', '=', userId)
           .executeTakeFirst();
 
-    const eventsUsed = currentUsage?.events_used ?? record?.events_usage ?? 0n;
+    const redisUsed = await this.redis.hget(redisKey, 'events_used');
+    const eventsUsed =
+      redisUsed !== null
+        ? BigInt(redisUsed)
+        : BigInt(currentUsage?.events_used ?? record?.events_usage ?? 0);
     usageCache.set(lruKey, {
       events_used: eventsUsed,
       events_limit: eventsLimit,
@@ -444,12 +707,49 @@ export class BillingService {
       stripeCustomerId,
       stripeSubscriptionId,
     );
-    if (!userId) return; // TODO: pending
+    if (!userId) return;
+    const now = new Date();
+    const values = {
+      user_id: userId,
+      stripe_customer_id: stripeCustomerId ?? null,
+      stripe_subscription_id: stripeSubscriptionId ?? null,
+      stripe_invoice_id: stripeInvoiceId,
+      status: invoice.status ?? null,
+      currency: invoice.currency ?? null,
+      amount_due:
+        invoice.amount_due == null ? null : BigInt(invoice.amount_due),
+      amount_paid:
+        invoice.amount_paid == null ? null : BigInt(invoice.amount_paid),
+      hosted_invoice_url: invoice.hosted_invoice_url ?? null,
+      invoice_pdf: invoice.invoice_pdf ?? null,
+      period_start: this.fromUnix(invoice.period_start),
+      period_end: this.fromUnix(invoice.period_end),
+      created_at: this.fromUnix(invoice.created) ?? now,
+      updated_at: now,
+    };
+    await this.db
+      .insertInto('payment_invoices')
+      .values(values)
+      .onConflict((oc) =>
+        oc.column('stripe_invoice_id').doUpdateSet({
+          status: values.status,
+          amount_due: values.amount_due,
+          amount_paid: values.amount_paid,
+          hosted_invoice_url: values.hosted_invoice_url,
+          invoice_pdf: values.invoice_pdf,
+          period_start: values.period_start,
+          period_end: values.period_end,
+          updated_at: now,
+        }),
+      )
+      .execute();
   }
 
   private async activatePlanFromSubscription(
     subscription: Stripe.Subscription,
   ) {
+    if (subscription.status !== 'active' && subscription.status !== 'trialing')
+      return;
     const subData = subscription as any;
     const userId = subscription.metadata?.userId;
     const stripePriceId = subData.items?.data?.[0]?.price?.id;
