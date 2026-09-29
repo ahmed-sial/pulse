@@ -69,7 +69,9 @@ export class UsageGuard implements CanActivate {
       void this.redis.expire(rKey, PLAN_REDIS_TTL);
       const entry: CachedUsage = {
         events_used: BigInt(rUsage.events_used),
-        events_limit: BigInt(rUsage.event_limit),
+        events_limit: BigInt(
+          rUsage.events_limit ?? PLAN_DEFAULTS.free.events_limit,
+        ),
       };
       usageCache.set(lruKey, entry);
       return entry;
@@ -108,8 +110,8 @@ export class UsageGuard implements CanActivate {
     }
 
     const entry: CachedUsage = {
-      events_used: record?.events_usage ?? 0,
-      events_limit: record?.events_limit ?? 0,
+      events_used: BigInt(record?.events_usage ?? 0),
+      events_limit: BigInt(record?.events_limit ?? 0),
     };
     await this.redis.hset(rKey, {
       events_used: entry.events_used.toString(),
@@ -163,7 +165,9 @@ export class UsageGuard implements CanActivate {
     const usage = await this.getOrCreateUsage(userId); // parameter planDefaults
 
     const effectiveUsageLimit =
-      usage.events_limit > 0 ? usage.events_limit : planDefaults.events_limit;
+      usage.events_limit > 0n
+        ? usage.events_limit
+        : BigInt(planDefaults.events_limit);
     if (usage.events_used >= effectiveUsageLimit)
       throw new ForbiddenException(
         'You have reached your usage quota. Please upgrade you plan',
